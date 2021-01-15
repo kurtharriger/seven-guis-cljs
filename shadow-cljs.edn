@@ -5,12 +5,13 @@
   "src/test"]
 
  :dependencies
- []
+ [[reagent "1.0.0"]]
 
  :dev-http {8080 "public"}
  :builds
  {:frontend
-  {:target  :browser
+  {:target :browser
    :modules {:main {:init-fn seven-guis.app/init}}
+   :devtools {:http-root "public"}
    }}
  }
