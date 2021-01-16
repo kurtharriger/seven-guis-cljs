@@ -1,7 +1,9 @@
 (ns seven-guis.app
   (:require
    [reagent.core :as reagent :refer [atom cursor]]
-   [reagent.dom :as rdom]))
+   [reagent.dom :as rdom]
+   [reitit.frontend :as rf]
+   [reitit.frontend.easy :as rfe]))
 
 (defn target-value [event]
   (-> event .-target .-value))
@@ -95,16 +97,44 @@
     )
   )
 
-;; App
+;; Router
 
-(defonce state (atom {:counter (new-counter-state)
-                      :temp (new-temp-state)
-                      :flight-booker (new-flight-booker-state)}))
-(defn app []
-  [:div
-   [counter (cursor state [:counter])]
-   [temp-converter (cursor state [:temp])]
-   [flight-booker (cursor state [:flight-booker])]])
+(def routes
+  [["/" nil]
+   ["/counter" ::counter]
+   ["/temp-converter" ::temp-converter]
+   ["/flight-booker" ::flight-booker]])
+
+(def page-for
+  {::counter #'counter
+   ::temp-converter #'temp-converter
+   ::flight-booker #'flight-booker
+   })
+
+(defn navbar []
+  (fn []
+    [:ul.nav
+     [:li [:a {:href (rfe/href ::counter)} "Counter"]]
+     [:li [:a {:href (rfe/href ::temp-converter)} "Temp Converter"]]
+     [:li [:a {:href (rfe/href ::flight-booker)} "Fight Booker"]]
+     ]))
+
+(defn current-page [state]
+  (rfe/start!
+    (rf/router routes)
+    (fn [match]
+      (swap! state assoc :page (get-in match [:data :name]))
+      )
+    {:use-fragment true})
+  (fn []
+    [:div
+     [navbar]
+     (if-let [page (:page @state)]
+       [(page-for page) (cursor state [page])])]))
+
+(defonce state (atom {::counter (new-counter-state)
+                      ::temp-converter (new-temp-state)
+                      ::flight-booker (new-flight-booker-state)}))
 
 (defn ^:dev/after-load init []
-  (rdom/render [app] (.getElementById js/document "root")))
+  (rdom/render [current-page state] (.getElementById js/document "root")))

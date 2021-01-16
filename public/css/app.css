@@ -1,3 +1,11 @@
+ul.nav {
+    list-style: none;
+}
+ul.nav > li {
+    display: inline;
+    margin-left: 20px;
+}
+
 span.count {
     margin: 10px;
 }
