@@ -97,18 +97,58 @@
     )
   )
 
+;; Timer
+
+(defn new-timer-state []
+  {:start-time (.now js/Date)
+   :duration (* 60 1000)})
+
+(defn percent-complete [{:keys [start-time duration]}]
+  (let [elapsed (min duration (- (.now js/Date) start-time))
+        pc      (/ elapsed duration)]
+    pc))
+
+(defn progress-bar [percent]
+  (fn [] [:div.progress
+          [:div.progress-bar {:style {:width (str (* 100 @percent) "%")}}]
+          [:span (str (int (* 100 @percent))) "%"]
+          ]))
+
+(defn timer [state]
+  (let [pc (atom (percent-complete @state))]
+    (prn :once)
+    (do (reagent/next-tick (fn update []
+                             (reset! pc (percent-complete @state))
+                             (reagent/next-tick update))))
+    (fn []
+      ;;(prn @pc)
+      [:div.component.timer
+       [:h1 "Timer"]
+       [progress-bar pc]
+       [:br]
+       [:input {:type "range" :min 1 :max (* 5 60 1000)
+                :value (:duration @state)
+                :on-change #(swap! state assoc :duration (target-value %))}]
+       [:span (str (int (/ (:duration @state) 1000)) "s")]
+       [:br]
+       [:button {:on-click #(swap! state assoc :start-time (.now js/Date))} "Reset"]
+
+       ])))
+
 ;; Router
 
 (def routes
   [["/" nil]
    ["/counter" ::counter]
    ["/temp-converter" ::temp-converter]
-   ["/flight-booker" ::flight-booker]])
+   ["/flight-booker" ::flight-booker]
+   ["/timer" ::timer]])
 
 (def page-for
   {::counter #'counter
    ::temp-converter #'temp-converter
    ::flight-booker #'flight-booker
+   ::timer #'timer
    })
 
 (defn navbar []
@@ -117,6 +157,7 @@
      [:li [:a {:href (rfe/href ::counter)} "Counter"]]
      [:li [:a {:href (rfe/href ::temp-converter)} "Temp Converter"]]
      [:li [:a {:href (rfe/href ::flight-booker)} "Fight Booker"]]
+     [:li [:a {:href (rfe/href ::timer)} "Timer"]]
      ]))
 
 (defn current-page [state]
@@ -134,7 +175,8 @@
 
 (defonce state (atom {::counter (new-counter-state)
                       ::temp-converter (new-temp-state)
-                      ::flight-booker (new-flight-booker-state)}))
+                      ::flight-booker (new-flight-booker-state)
+                      ::timer (new-timer-state)}))
 
 (defn ^:dev/after-load init []
   (rdom/render [current-page state] (.getElementById js/document "root")))
