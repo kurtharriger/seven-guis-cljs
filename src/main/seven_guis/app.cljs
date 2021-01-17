@@ -361,12 +361,12 @@
     (if match
       (let [[cell more] (parse-cell-ref formula)]
         (if (and cell (empty? more))
-          {:eval (fn [values] (get values cell))
+          {:evalf (fn [values] (get values cell))
            :deps #{cell}
            :formula :ref}
-          {:eval #(do "Invalid Formula")
+          {:evalf #(do "Invalid Formula")
            :formula :invalid}))
-      {:eval #(do input) :formula :const})))
+      {:evalf #(do input) :formula :const})))
 
 (defn map-vals [f m]
   (with-meta (into {} (for [[k v] m] [k (f v)])) (meta m)))
@@ -380,7 +380,7 @@
               (merge values
                 (into {}
                   (map
-                    (fn [{:keys [cell eval]}] [cell (eval values)]) no-deps)))]
+                    (fn [{:keys [cell evalf]}] [cell (evalf values)]) no-deps)))]
           (recur
             new-values
             (map (fn [formula] (update formula :deps difference (set (keys new-values)))) deps)))
