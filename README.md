@@ -17,6 +17,8 @@ rm -r docs
 rm -r public/js
 npx shadow-cljs release frontend
 cp -r public docs
-
+git add . 
+git commit -m 'release'
+git push 
 ```
 
