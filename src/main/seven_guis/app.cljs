@@ -223,7 +223,7 @@
 ;; Circle Drawer
 
 (defn empty-circle-drawer-state []
-  {:selected 0 :history []})
+  {:selected nil :history []})
 
 (defn new-circle-drawer-state []
   (-> (empty-circle-drawer-state)
@@ -287,26 +287,56 @@
           :history (conj (vec (take history-count history))
                      [:create-circle (assoc pt :r 25)])
           :history-count (inc history-count)
-          :selected (:next-id draw-state))))))
+          :selected nil)))))
+
+(defn resize-dialog [cur-size on-resize]
+  (let [state (atom cur-size)]
+    (fn []
+      [:div.modal
+       [:div.content
+        [:h1 "Resize"]
+        [:input {:type "range"
+                 :min 5
+                 :max 500
+                 :value @state
+                 :on-change #(reset! state (int (target-value %)))}]
+        [:br]
+        [:span.value (str @state)]
+        [:button {:on-click #(on-resize @state)} "Apply"]]
+       ])))
+
+(defn resize-circle [state selected new-size]
+  (let [{:keys [history history-count]} state]
+    (-> state
+      (assoc
+        :history (conj (vec (take history-count history))
+                   [:resize-circle {:id selected :r new-size}])
+        :history-count (inc history-count)
+        :selected nil))))
 
 (defn circle-drawer [state]
   (fn []
     (let [{:keys [history history-count selected]} @state
-          draw-state (draw-state (take history-count history))
-          can-undo?  (< 0 history-count)
-          can-redo?  (< history-count (count history))
-          svg-el     (atom nil)]
+          draw-state           (draw-state (take history-count history))
+          selected-circle-size (get-in draw-state [:circles selected :r])
+          can-undo?            (< 0 history-count)
+          can-redo?            (< history-count (count history))
+          svg-el               (atom nil)
+          ]
       [:div.component.circle-drawer
        [:h1 "Circle Drawer"]
        [:button {:disabled (not can-undo?) :on-click #(swap! state update :history-count dec)} "Undo"]
        [:button {:disabled (not can-redo?) :on-click #(swap! state update :history-count inc)} "Redo"]
-       [:svg {:style {:width "100%" :height "500px"}
-              :ref #(reset! svg-el %)
+       (if selected
+         [resize-dialog selected-circle-size
+          #(swap! state resize-circle selected %)])
+       [:svg {:ref #(reset! svg-el %)
               :on-click #(if-let [pt (get-click-pos @svg-el %)]
                            (swap! state create-or-select-circle-at-point draw-state pt))}
         (for [[id {:keys [x y r]}] (-> draw-state :circles)]
           ^{:key id} [:circle {:cx x :cy y :r r :class (if (= id selected) :selected)}]
-          )]])))
+          )]
+       ])))
 
 ;; Router
 
