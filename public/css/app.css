@@ -67,3 +67,16 @@ div.crud input {
     margin-left: 16px;
 }
 
+div.circle-drawer svg {
+    border: 1pt solid black;
+}
+div.circle-drawer circle {
+    fill:none;
+    stroke: black;
+    stroke-width: 3px;
+}
+div.circle-drawer circle.selected {
+    fill: gray;
+    stroke: black;
+    stroke-width: 3px;
+}

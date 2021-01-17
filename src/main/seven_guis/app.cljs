@@ -220,6 +220,94 @@
          ]]]))
   )
 
+;; Circle Drawer
+
+(defn empty-circle-drawer-state []
+  {:selected 0 :history []})
+
+(defn new-circle-drawer-state []
+  (-> (empty-circle-drawer-state)
+    (assoc :history
+      [[:create-circle {:x 100 :y 80 :r 50}]
+       [:resize-circle {:id 0 :r 10}]
+       [:create-circle {:x 180 :y 100 :r 20}]]
+      :history-count 3)
+    ))
+
+(defmulti apply-circle-action (fn [_ [action & _]] action))
+(defmethod apply-circle-action :create-circle [state [_ {:keys [x y r]}]]
+  (-> state
+    (assoc-in [:circles (:next-id state)] (with-meta {:x x :y y :r r} {:id (:next-id state)}))
+    (update :next-id inc)))
+
+(defmethod apply-circle-action :resize-circle [state [_ {:keys [id r]}]]
+  (assoc-in state [:circles id :r] r))
+
+(defn draw-state [history]
+  (reduce apply-circle-action {:next-id 0 :circles {}} history))
+
+
+(defn make-svg-point [svg x y]
+  (let [pt ^js/SVGPoint (.createSVGPoint svg)]
+    (set! (. pt -x) x)
+    (set! (. pt -y) y)
+    pt))
+
+(defn translate-svg-point [^js/SVG svg ^js/SVGPoint pt]
+  (let [m  ^js/SVGMatrix (.getScreenCTM svg)
+        tp ^js/SVGPoint (.matrixTransform pt (.inverse m))]
+    tp))
+
+;; https://stackoverflow.com/a/42711775/226020
+(defn get-click-pos [svg event]
+  (let [x  (.-clientX event)
+        y  (.-clientY event)
+        pt (-> (make-svg-point svg x y)
+             ((partial translate-svg-point svg)))
+        ]
+    {:x (.-x pt) :y (.-y pt)}))
+
+(defn is-point-in-circle? [pt circle]
+  (let [dx    (- (:x pt) (:x circle))
+        dy    (- (:y pt) (:y circle))
+        dist2 (+ (* dx dx) (* dy dy))
+        r2    (let [r (:r circle)] (* r r))]
+    (< dist2 r2)))
+
+(defn find-circle-at-pt [pt circles]
+  (first (filter (partial is-point-in-circle? pt) circles)))
+
+(defn create-or-select-circle-at-point [state draw-state pt]
+  ;; test newer circles first as they may overlap older circles
+  (if-let [found (find-circle-at-pt pt (-> draw-state :circles vals reverse))]
+    (assoc state :selected (:id (meta found)))
+    (let [{:keys [history history-count]} state]
+      (-> state
+        (assoc
+          :history (conj (vec (take history-count history))
+                     [:create-circle (assoc pt :r 25)])
+          :history-count (inc history-count)
+          :selected (:next-id draw-state))))))
+
+(defn circle-drawer [state]
+  (fn []
+    (let [{:keys [history history-count selected]} @state
+          draw-state (draw-state (take history-count history))
+          can-undo?  (< 0 history-count)
+          can-redo?  (< history-count (count history))
+          svg-el     (atom nil)]
+      [:div.component.circle-drawer
+       [:h1 "Circle Drawer"]
+       [:button {:disabled (not can-undo?) :on-click #(swap! state update :history-count dec)} "Undo"]
+       [:button {:disabled (not can-redo?) :on-click #(swap! state update :history-count inc)} "Redo"]
+       [:svg {:style {:width "100%" :height "500px"}
+              :ref #(reset! svg-el %)
+              :on-click #(if-let [pt (get-click-pos @svg-el %)]
+                           (swap! state create-or-select-circle-at-point draw-state pt))}
+        (for [[id {:keys [x y r]}] (-> draw-state :circles)]
+          ^{:key id} [:circle {:cx x :cy y :r r :class (if (= id selected) :selected)}]
+          )]])))
+
 ;; Router
 
 (def routes
@@ -228,7 +316,8 @@
    ["/temp-converter" ::temp-converter]
    ["/flight-booker" ::flight-booker]
    ["/timer" ::timer]
-   ["/crud" ::crud]])
+   ["/crud" ::crud]
+   ["/circle-drawer" ::circle-drawer]])
 
 (def page-for
   {::counter #'counter
@@ -236,6 +325,7 @@
    ::flight-booker #'flight-booker
    ::timer #'timer
    ::crud #'crud
+   ::circle-drawer #'circle-drawer
    })
 
 (defn navbar []
@@ -246,6 +336,7 @@
      [:li [:a {:href (rfe/href ::flight-booker)} "Fight Booker"]]
      [:li [:a {:href (rfe/href ::timer)} "Timer"]]
      [:li [:a {:href (rfe/href ::crud)} "CRUD"]]
+     [:li [:a {:href (rfe/href ::circle-drawer)} "Circle Drawer"]]
      ]))
 
 (defn current-page [state]
@@ -265,7 +356,8 @@
                       ::temp-converter (new-temp-state)
                       ::flight-booker (new-flight-booker-state)
                       ::timer (new-timer-state)
-                      ::crud (new-crud-state)}))
+                      ::crud (new-crud-state)
+                      ::circle-drawer (new-circle-drawer-state)}))
 
 (defn ^:dev/after-load init []
   (rdom/render [current-page state] (.getElementById js/document "root")))
