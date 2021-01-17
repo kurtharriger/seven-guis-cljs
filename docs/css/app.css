@@ -1,0 +1,133 @@
+ul.nav {
+    list-style: none;
+    font-size: 90%;
+}
+
+ul.nav > li {
+    display: inline;
+    margin-left: 20px;
+}
+
+span.count {
+    margin: 10px;
+}
+
+
+.flight-booker div.disabled {
+    color: lightgray;
+}
+
+.invalid {
+    color: maroon;
+}
+
+div.progress {
+    position: relative;
+    border: 1px solid black;
+    background-color: lightgray;
+    text-align: center;
+    height: 30px;
+}
+
+div.progress-bar {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background-color: lightgreen;
+}
+
+div.progress > span {
+    position: relative;
+}
+
+div.crud ul {
+    width: 100%;
+    height: 200px;
+    overflow: auto;
+    border: 1px solid black;
+    padding: 5px;
+    margin: 16px;
+}
+
+div.crud li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+div.crud li.selected {
+    background-color: deepskyblue;
+    color: white;
+}
+
+div.crud button {
+    margin-left: 16px;
+}
+
+div.crud input {
+    margin-left: 16px;
+}
+
+div.circle-drawer svg {
+    border: 1pt solid black;
+}
+
+div.circle-drawer circle {
+    fill: none;
+    stroke: black;
+    stroke-width: 3px;
+}
+
+div.circle-drawer circle.selected {
+    fill: gray;
+    stroke: black;
+    stroke-width: 3px;
+}
+
+div.circle-drawer {
+    position: relative;
+}
+
+div.circle-drawer svg {
+    width: 100%;
+    height: 500px;
+}
+
+div.circle-drawer .modal {
+    position: absolute;
+    width: 100%;
+    height: 500px;
+    background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+div.circle-drawer .modal .content {
+    background-color: white;
+    border: 2px solid black;
+    padding: 0 25px 20px 25px;
+    width: 300px;
+}
+
+div.circle-drawer .modal .content button {
+    float: right;
+}
+
+div.component.cells .content {
+    overflow: scroll;
+    width: 100%;
+    height: 500px;
+    font-size: 65%;
+}
+
+div.component.cells th {
+    position: sticky;
+    top: 0;
+    background-color: #f9f9f9;
+}
+
+div.component.cells .selected {
+    background-color: deepskyblue;
+    color: white;
+}

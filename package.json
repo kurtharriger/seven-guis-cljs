@@ -1,7 +1,22 @@
 {
-  "name": "seven-guis-cljs",
+  "name": "@kurtharriger/seven-guis-cljs",
   "version": "0.0.1",
-  "private": true,
+  "author": {
+    "name": "Kurt Harriger",
+    "email": "kurtharriger@gmail.com"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "public/"
+  ],
+  "scripts": {
+    "dev": "shadow-cljs watch frontend",
+    "release": "shadow-cljs release frontend",
+    "clean": "rm -rf public/js",
+    "prepublishOnly": "npm run release"
+  },
   "devDependencies": {
     "shadow-cljs": "2.11.14"
   },
