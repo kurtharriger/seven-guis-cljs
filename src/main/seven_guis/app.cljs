@@ -158,7 +158,7 @@
       :names (assoc names selected {:first first :last last}))
     state))
 
-(defn delete-name [{:keys [names selected] :as state}]
+(defn delete-name [{:keys [selected] :as state}]
   (-> state
     (update :names dissoc selected)
     (assoc :name nil selected :first nil :last nil :selected nil)))
