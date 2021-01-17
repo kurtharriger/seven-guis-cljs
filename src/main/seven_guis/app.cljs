@@ -69,7 +69,6 @@
                          return-date :invalid)
         return-date    (if (= type :return) return-date)
         invalid        (some invalid? [departure-date return-date])]
-    (prn return-date)
     [:div.component.flight-booker
      [:h1 "Flight Booker"]
      [:form {:on-submit (fn [event]
@@ -116,12 +115,10 @@
 
 (defn timer [state]
   (let [pc (atom (percent-complete @state))]
-    (prn :once)
     (do (reagent/next-tick (fn update []
                              (reset! pc (percent-complete @state))
                              (reagent/next-tick update))))
     (fn []
-      ;;(prn @pc)
       [:div.component.timer
        [:h1 "Timer"]
        [progress-bar pc]
@@ -135,6 +132,94 @@
 
        ])))
 
+
+;; CRUD
+
+(defn empty-crud-state []
+  {:names {}
+   :next-id 0
+   :selected nil
+   :filter nil
+   :first nil
+   :last nil})
+
+(defn add-name [{:keys [names next-id] :as state} first last]
+  (assoc state
+    :names (assoc names next-id {:first first :last last})
+    :next-id (inc next-id)
+    :selected nil
+    :filter nil
+    :first nil
+    :last nil))
+
+(defn update-name [{:keys [names selected] :as state} first last]
+  (if selected
+    (assoc state
+      :names (assoc names selected {:first first :last last}))
+    state))
+
+(defn delete-name [{:keys [names selected] :as state}]
+  (-> state
+    (update :names dissoc selected)
+    (assoc :name nil selected :first nil :last nil :selected nil)))
+
+(defn new-crud-state []
+  (->
+    (empty-crud-state)
+    (add-name "James" "Doe")
+    (add-name "John" "Jackson")
+    (add-name "Betty" "Moss")))
+
+(defn filtered-names [names search]
+  (if search
+    (->> names
+      (map (fn [row]
+             (let [[id {:keys [first last]}] row
+                   text (str last ", " first)]
+               (if (re-find (re-pattern search) text) id))))
+      (remove nil?)
+      (vec))
+    (keys names)))
+
+(defn crud [state]
+  (fn []
+    (let [{:keys [names selected filter first last]} @state
+          filtered-list (filtered-names names filter)]
+      [:div.component.crud
+       [:input {:type "text"
+                :value filter
+                :on-change #(swap! state assoc :filter (target-value %))}]
+       [:ul
+        (for [id filtered-list
+              :let [{:keys [first last]} (get names id)]]
+          ^{:key id} [:li
+                      {:class (if (= selected id) :selected)
+                       :on-click #(swap! state assoc :selected id :first first :last last)}
+                      (str last ", " first)])
+        ]
+       [:input {:type "text"
+                :value first
+                :on-change #(swap! state assoc :first (target-value %))}]
+       [:input {:type "text"
+                :value last
+                :on-change #(swap! state assoc :last (target-value %))}]
+       [:div
+        [:button
+         {:disabled
+          (or (empty? first) (empty? last))
+          :on-click #(swap! state add-name first last)}
+         "Create"]
+        [:button
+         {:disabled (or (nil? selected) (empty? first) (empty? last))
+          :on-click #(swap! state update-name first last)}
+         "Update"]
+        [:button
+         {:disabled (not selected)
+          :on-click #(swap! state delete-name)}
+         "Delete"
+         ]]]))
+  )
+
 ;; Router
 
 (def routes
@@ -142,13 +227,15 @@
    ["/counter" ::counter]
    ["/temp-converter" ::temp-converter]
    ["/flight-booker" ::flight-booker]
-   ["/timer" ::timer]])
+   ["/timer" ::timer]
+   ["/crud" ::crud]])
 
 (def page-for
   {::counter #'counter
    ::temp-converter #'temp-converter
    ::flight-booker #'flight-booker
    ::timer #'timer
+   ::crud #'crud
    })
 
 (defn navbar []
@@ -158,6 +245,7 @@
      [:li [:a {:href (rfe/href ::temp-converter)} "Temp Converter"]]
      [:li [:a {:href (rfe/href ::flight-booker)} "Fight Booker"]]
      [:li [:a {:href (rfe/href ::timer)} "Timer"]]
+     [:li [:a {:href (rfe/href ::crud)} "CRUD"]]
      ]))
 
 (defn current-page [state]
@@ -176,7 +264,8 @@
 (defonce state (atom {::counter (new-counter-state)
                       ::temp-converter (new-temp-state)
                       ::flight-booker (new-flight-booker-state)
-                      ::timer (new-timer-state)}))
+                      ::timer (new-timer-state)
+                      ::crud (new-crud-state)}))
 
 (defn ^:dev/after-load init []
   (rdom/render [current-page state] (.getElementById js/document "root")))

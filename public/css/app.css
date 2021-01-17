@@ -30,9 +30,40 @@ div.progress {
 
 div.progress-bar {
     position: absolute;
-    top:0;
-    height:100%;
+    top: 0;
+    height: 100%;
     background-color: lightgreen;
 }
 
-div.progress > span { position: relative; }
+div.progress > span {
+    position: relative;
+}
+
+div.crud ul {
+    width: 100%;
+    height: 200px;
+    overflow: auto;
+    border: 1px solid black;
+    padding: 5px;
+    margin: 16px;
+}
+
+div.crud li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+div.crud li.selected {
+    background-color: deepskyblue;
+    color: white;
+}
+
+div.crud button {
+    margin-left: 16px;
+}
+
+div.crud input {
+    margin-left: 16px;
+}
+
