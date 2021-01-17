@@ -338,6 +338,38 @@
           )]
        ])))
 
+;; Cells
+
+(def column-keys
+  (mapv (comp keyword str char)
+    (range (.charCodeAt "A") (inc (.charCodeAt "Z")))))
+
+(defn new-cells-state [] {})
+(defn cells [state]
+  (fn []
+    [:div.component.cells
+     [:h1 "Cells"]
+     [:input {:type "text"}]
+     [:button "Update"]
+     [:div.content
+      [:table
+       [:thead
+        [:tr
+         [:th]
+         (for [col column-keys]
+           ^{:key col} [:th (name col)])]
+        ]
+       [:tbody
+        (for [row (range 0 99)]
+          ^{:key row}
+          [:tr
+           [:td (str row)]
+           (for [col column-keys]
+             ^{:key col} [:td "hi"])
+           ]
+          )]
+       ]]]))
+
 ;; Router
 
 (def routes
@@ -347,7 +379,8 @@
    ["/flight-booker" ::flight-booker]
    ["/timer" ::timer]
    ["/crud" ::crud]
-   ["/circle-drawer" ::circle-drawer]])
+   ["/circle-drawer" ::circle-drawer]
+   ["/cells" ::cells]])
 
 (def page-for
   {::counter #'counter
@@ -356,6 +389,7 @@
    ::timer #'timer
    ::crud #'crud
    ::circle-drawer #'circle-drawer
+   ::cells #'cells
    })
 
 (defn navbar []
@@ -367,6 +401,7 @@
      [:li [:a {:href (rfe/href ::timer)} "Timer"]]
      [:li [:a {:href (rfe/href ::crud)} "CRUD"]]
      [:li [:a {:href (rfe/href ::circle-drawer)} "Circle Drawer"]]
+     [:li [:a {:href (rfe/href ::cells)} "Cells"]]
      ]))
 
 (defn current-page [state]
@@ -387,7 +422,8 @@
                       ::flight-booker (new-flight-booker-state)
                       ::timer (new-timer-state)
                       ::crud (new-crud-state)
-                      ::circle-drawer (new-circle-drawer-state)}))
+                      ::circle-drawer (new-circle-drawer-state)
+                      ::cells (new-cells-state)}))
 
 (defn ^:dev/after-load init []
   (rdom/render [current-page state] (.getElementById js/document "root")))
