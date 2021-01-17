@@ -346,29 +346,47 @@
 
 (defn new-cells-state [] {})
 (defn cells [state]
-  (fn []
-    [:div.component.cells
-     [:h1 "Cells"]
-     [:input {:type "text"}]
-     [:button "Update"]
-     [:div.content
-      [:table
-       [:thead
-        [:tr
-         [:th]
-         (for [col column-keys]
-           ^{:key col} [:th (name col)])]
-        ]
-       [:tbody
-        (for [row (range 0 99)]
-          ^{:key row}
-          [:tr
-           [:td (str row)]
-           (for [col column-keys]
-             ^{:key col} [:td "hi"])
-           ]
-          )]
-       ]]]))
+  (let [input-ref (atom nil)
+        re-focus  (atom true)]
+    (fn []
+      (let [values  (:input @state)
+            selected (:selected @state [:A 0])
+            input    (get-in @state [:input selected])]
+        (when (and @re-focus @input-ref)
+          (reagent/next-tick #(do
+                        (.select @input-ref)
+                        (.focus @input-ref)))
+          (reset! re-focus false))
+        [:div.component.cells
+         [:h1 "Cells"]
+         [:input {:type "text"
+                  :disabled (not selected)
+                  :ref #(reset! input-ref %)
+                  :on-change #(swap! state assoc-in [:input selected] (target-value %))
+                  :value input}]
+         [:div.content
+          [:table
+           [:thead
+            [:tr
+             [:th]
+             (for [col column-keys]
+               ^{:key col} [:th  (name col)])]
+            ]
+           [:tbody
+            (for [row (range 0 99)]
+              ^{:key row}
+              [:tr
+               [:td (str row)]
+               (for [col column-keys]
+                 ^{:key col} [:td
+                              {:class (if (= selected [col row]) :selected)
+                               :on-click #(do
+                                            (swap! state assoc :selected [col row])
+                                            (reset! re-focus true))}
+                              (get values [col row])])
+               ]
+              )]
+           ]]]))))
 
 ;; Router
 

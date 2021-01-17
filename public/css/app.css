@@ -116,6 +116,18 @@ div.circle-drawer .modal .content button {
 
 div.component.cells .content {
     overflow: scroll;
-    width:100%;
+    width: 100%;
     height: 500px;
+    font-size: 65%;
+}
+
+div.component.cells th {
+    position: sticky;
+    top: 0;
+    background-color: #f9f9f9;
+}
+
+div.component.cells .selected {
+    background-color: deepskyblue;
+    color: white;
 }
