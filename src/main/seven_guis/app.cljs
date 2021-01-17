@@ -1,5 +1,6 @@
 (ns seven-guis.app
   (:require
+   [clojure.set :refer [difference]]
    [reagent.core :as reagent :refer [atom cursor]]
    [reagent.dom :as rdom]
    [reitit.frontend :as rf]
@@ -360,7 +361,7 @@
     (if match
       (let [[cell more] (parse-cell-ref formula)]
         (if (and cell (empty? more))
-          {:eval (fn [values] (get-in values cell))
+          {:eval (fn [values] (get values cell))
            :deps #{cell}
            :formula :ref}
           {:eval #(do "Invalid Formula")
@@ -370,10 +371,24 @@
 (defn map-vals [f m]
   (with-meta (into {} (for [[k v] m] [k (f v)])) (meta m)))
 
+(defn topological-evaluation
+  [values formulas]
+  (if-not (empty? formulas)
+    (let [g (group-by (fn [{:keys [deps]}] (if (empty? deps) :no-deps :deps)) formulas)
+          {:keys [no-deps deps]} g]
+      (let [new-values
+            (merge values
+              (into {}
+                (map
+                  (fn [{:keys [cell eval]}] [cell (eval  values)]) no-deps)))]
+        (recur
+          new-values
+          (map (fn [formula] (update formula :deps difference (set (keys new-values)))) deps))))
+      values))
+
 (defn compute-values [input]
-  (let [formulas (map-vals parse-formula input)]
-    (prn formulas)
-    input))
+  (let [formulas (map (fn [[cell text]] (assoc (parse-formula text) :cell cell)) input)]
+        (topological-evaluation {} formulas)))
 
 (defn cells [state]
   (let [input-ref (atom nil)
@@ -381,7 +396,7 @@
     (fn []
       (let [selected (:selected @state [:A 0])
             input    (get-in @state [:input selected])
-            values   (compute-values (:input @state))]
+            values   @(reagent/track compute-values (:input @state))]
         (when (and @re-focus @input-ref)
           (reagent/next-tick #(do
                                 (.select @input-ref)
