@@ -1,6 +1,6 @@
 (ns seven-guis.app
   (:require
-   [clojure.set :refer [difference]]
+   [clojure.set :refer [difference intersection]]
    [reagent.core :as reagent :refer [atom cursor]]
    [reagent.dom :as rdom]
    [reitit.frontend :as rf]
@@ -374,20 +374,28 @@
 (defn topological-evaluation
   [values formulas]
   (if-not (empty? formulas)
-    (let [g (group-by (fn [{:keys [deps]}] (if (empty? deps) :no-deps :deps)) formulas)
-          {:keys [no-deps deps]} g]
-      (let [new-values
-            (merge values
-              (into {}
-                (map
-                  (fn [{:keys [cell eval]}] [cell (eval  values)]) no-deps)))]
-        (recur
-          new-values
-          (map (fn [formula] (update formula :deps difference (set (keys new-values)))) deps))))
+    (let [{:keys [no-deps deps]} (group-by (fn [{:keys [deps]}] (if (empty? deps) :no-deps :deps)) formulas)]
+      (if (seq no-deps)
+        (let [new-values
+              (merge values
+                (into {}
+                  (map
+                    (fn [{:keys [cell eval]}] [cell (eval values)]) no-deps)))]
+          (recur
+            new-values
+            (map (fn [formula] (update formula :deps difference (set (keys new-values)))) deps)))
+        (if (seq deps)
+          (merge values (into {} (map (fn [{:keys [cell]}] [cell "REF"]) deps)))
+          values)))
       values))
 
 (defn compute-values [input]
-  (let [formulas (map (fn [[cell text]] (assoc (parse-formula text) :cell cell)) input)]
+  (let [formulas (map (fn [[cell text]] (assoc (parse-formula text) :cell cell)) input)
+        ;; if formula is dependant on a non-populate cell it can still be evaluated
+        populated-cells (set (map :cell formulas))
+        formulas (map (fn [formula]
+                        (update formula :deps intersection populated-cells)) formulas)
+        ]
         (topological-evaluation {} formulas)))
 
 (defn cells [state]
