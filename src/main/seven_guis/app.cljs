@@ -344,18 +344,48 @@
   (mapv (comp keyword str char)
     (range (.charCodeAt "A") (inc (.charCodeAt "Z")))))
 
-(defn new-cells-state [] {})
+(defn new-cells-state []
+  {:input {[:A 0] "1"
+           [:B 0] "=A0"
+           [:C 0] "=B0"}})
+
+(defn parse-cell-ref [s]
+  (let [[match col row] (re-find #"^([A-Z])(\d\d?)" (or s ""))]
+    (if match
+      [[(keyword col) (js/parseInt row 10)] (apply str (drop (count match) s))]
+      [nil s])))
+
+(defn parse-formula [input]
+  (let [[match formula] (re-find #"=(.*)" (or input ""))]
+    (if match
+      (let [[cell more] (parse-cell-ref formula)]
+        (if (and cell (empty? more))
+          {:eval (fn [values] (get-in values cell))
+           :deps #{cell}
+           :formula :ref}
+          {:eval #(do "Invalid Formula")
+           :formula :invalid}))
+      {:eval #(do input) :formula :const})))
+
+(defn map-vals [f m]
+  (with-meta (into {} (for [[k v] m] [k (f v)])) (meta m)))
+
+(defn compute-values [input]
+  (let [formulas (map-vals parse-formula input)]
+    (prn formulas)
+    input))
+
 (defn cells [state]
   (let [input-ref (atom nil)
         re-focus  (atom true)]
     (fn []
-      (let [values  (:input @state)
-            selected (:selected @state [:A 0])
-            input    (get-in @state [:input selected])]
+      (let [selected (:selected @state [:A 0])
+            input    (get-in @state [:input selected])
+            values   (compute-values (:input @state))]
         (when (and @re-focus @input-ref)
           (reagent/next-tick #(do
-                        (.select @input-ref)
-                        (.focus @input-ref)))
+                                (.select @input-ref)
+                                (.focus @input-ref)))
           (reset! re-focus false))
         [:div.component.cells
          [:h1 "Cells"]
@@ -370,7 +400,7 @@
             [:tr
              [:th]
              (for [col column-keys]
-               ^{:key col} [:th  (name col)])]
+               ^{:key col} [:th (name col)])]
             ]
            [:tbody
             (for [row (range 0 99)]
