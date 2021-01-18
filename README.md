@@ -1,6 +1,6 @@
 # [7 GUIs](https://eugenkiss.github.io/7guis/) in CLJS
 
-[View Online](https://kurtharriger.github.io/seven-guis-cljs/docs/#/counter)
+[View Online](https://kurtharriger.github.io/seven-guis-cljs/#/counter)
 
 ## Run locally
 ```bash
